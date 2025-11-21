@@ -1,6 +1,7 @@
 {
   "images" : [
     {
+      "filename" : "RugburnIcon.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -12,6 +13,7 @@
           "value" : "dark"
         }
       ],
+      "filename" : "RugburnIcon 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -23,6 +25,7 @@
           "value" : "tinted"
         }
       ],
+      "filename" : "RugburnIcon 2.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -63,6 +66,7 @@
       "size" : "256x256"
     },
     {
+      "filename" : "RugburnIcon 4.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "256x256"
@@ -73,6 +77,7 @@
       "size" : "512x512"
     },
     {
+      "filename" : "RugburnIcon 3.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "512x512"
