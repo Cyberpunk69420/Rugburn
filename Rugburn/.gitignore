@@ -31,6 +31,9 @@ DerivedData/
 *.perspectivev3
 !default.perspectivev3
 xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
 *.xccheckout
 *.moved-aside
 *.xcuserstate
@@ -73,3 +76,4 @@ fastlane/readme.md
 # Misc
 *.orig
 *.rej
+
