@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 
-**Project Name:** OpenSlide **Platform:** macOS (14.0+) **Language:** Swift 5.9+ **Frameworks:** SwiftUI, AppKit, WebKit, Combine **Goal:** Create an open-source, personal-use clone of "Slidepad." The app acts as a secondary browser that "slides in" from the edge of the screen, allowing quick access to web-apps (Slack, Notion, ChatGPT, etc.) without cluttering the main workspace or Dock.
+**Project Name:** OpenSlide **Platform:** macOS (14.0+) **Language:** Swift 5.9+ **Frameworks:** SwiftUI, AppKit, WebKit, Combine **Goal:** Create an open-source, personal-use clone of "a slide out browser." The app acts as a secondary browser that "slides in" from the edge of the screen, allowing quick access to web-apps (Slack, Notion, ChatGPT, etc.) without cluttering the main workspace or Dock.
 
 ## 2. Core Features Scope
 
