@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Centralized app appearance for the slidepad panel.
+/// Centralized app appearance for the rugburn panel.
 struct AppTheme {
     static let panelBackground = Color("PanelBackground")
     static let contentBackground = Color("ContentBackground")

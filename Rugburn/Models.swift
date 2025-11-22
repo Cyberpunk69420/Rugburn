@@ -9,6 +9,7 @@ struct WebAppItem: Identifiable, Codable, Equatable {
     var iconSymbol: String?
     var userAgent: String?
     var iconData: Data? // Optional favicon or custom icon
+    var faviconFileName: String? // Cached favicon file name (in Caches/RugburnFavicons)
 }
 
 struct UserSettings: Codable {
@@ -23,6 +24,8 @@ class SidebarViewModel: ObservableObject {
     @Published var showAddSheet: Bool = false
     @Published var useMobileUserAgent: Bool = true
 
+    private let faviconService = FaviconService.shared
+
     init() {
         let loaded = Persistence.loadItems()
         if loaded.isEmpty {
@@ -34,6 +37,45 @@ class SidebarViewModel: ObservableObject {
             items = loaded
         }
         selected = items.first
+
+        refreshFaviconsIfNeeded()
+    }
+
+    private func refreshFaviconsIfNeeded() {
+        for index in items.indices {
+            if items[index].faviconFileName == nil {
+                fetchFavicon(forIndex: index)
+            }
+        }
+    }
+
+    private func fetchFavicon(forIndex index: Int, forceRefresh: Bool = false) {
+        let item = items[index]
+        faviconService.fetchFavicon(for: item, forceRefresh: forceRefresh) { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self = self,
+                      index < self.items.count,
+                      self.items[index].id == item.id else { return }
+
+                switch result {
+                case .success(let payload):
+                    guard let payload = payload else { return }
+                    self.items[index].faviconFileName = payload.fileName
+                    Persistence.saveItems(self.items)
+
+                case .failure:
+                    // Error already logged inside service; keep using fallback icon.
+                    break
+                }
+            }
+        }
+    }
+
+    /// Public helper so other parts of the app (e.g. star/bookmark button) can trigger a favicon fetch
+    func fetchFaviconIfNeeded(for item: WebAppItem, forceRefresh: Bool = false) {
+        guard let index = items.firstIndex(of: item) else { return }
+        if !forceRefresh, items[index].faviconFileName != nil { return }
+        fetchFavicon(forIndex: index, forceRefresh: forceRefresh)
     }
 
     func addItem() {
@@ -47,6 +89,9 @@ class SidebarViewModel: ObservableObject {
         let item = WebAppItem(name: addName, url: url, iconSymbol: nil, userAgent: nil)
         items.append(item)
         Persistence.saveItems(items)
+        if let idx = items.firstIndex(of: item) {
+            fetchFavicon(forIndex: idx)
+        }
         selected = item
         addName = ""
         addUrl = ""
@@ -62,6 +107,9 @@ class SidebarViewModel: ObservableObject {
 
     func delete(_ item: WebAppItem) {
         if let idx = items.firstIndex(of: item) {
+            if let fileName = items[idx].faviconFileName {
+                FaviconCache.shared.removeFavicon(named: fileName)
+            }
             items.remove(at: idx)
             Persistence.saveItems(items)
             if selected?.id == item.id {

@@ -9,7 +9,7 @@ final class SlidePanelWindowController: NSWindowController {
         override var canBecomeMain: Bool { true }
     }
 
-    private var hostingView: NSHostingView<SlidepadContentView>?
+    private var hostingView: NSHostingView<AnyView>?
     private let sidebarModel = SidebarViewModel()
 
     init() {
@@ -17,7 +17,7 @@ final class SlidePanelWindowController: NSWindowController {
             x: NSScreen.main?.visibleFrame.maxX ?? 800,
             y: NSScreen.main?.visibleFrame.midY ?? 0,
             width: 540,
-            height: 740
+            height: 800
         )
 
         let panel = SlidePanel(
@@ -33,8 +33,18 @@ final class SlidePanelWindowController: NSWindowController {
         panel.backgroundColor = .clear
         panel.hasShadow = true
 
-        let contentView = SlidepadContentView(sidebarModel: sidebarModel)
-        let hosting = NSHostingView(rootView: contentView)
+        // Build the root SwiftUI view without capturing self
+        let slideView = SlideContentView(sidebarModel: sidebarModel)
+        let roundedContainer = AnyView(
+            ZStack {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Color(nsColor: NSColor.windowBackgroundColor))
+                slideView
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            }
+        )
+
+        let hosting = NSHostingView(rootView: roundedContainer)
         hosting.frame = panel.contentView?.bounds ?? .zero
         hosting.autoresizingMask = [.width, .height]
         panel.contentView?.addSubview(hosting)
@@ -52,7 +62,7 @@ final class SlidePanelWindowController: NSWindowController {
         guard let window = self.window, let screen = NSScreen.main else { return }
         let visible = screen.visibleFrame
         let width: CGFloat = 540
-        let height: CGFloat = 740
+        let height: CGFloat = 800
         let targetX = visible.maxX - width
         let targetY = visible.midY - height / 2
 
