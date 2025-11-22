@@ -2,11 +2,9 @@ import SwiftUI
 
 @main
 struct RugburnApp: App {
-    @StateObject private var appController = AppController.shared
-
     init() {
         showSplashPanel()
-        appController.start()
+        AppController.shared.start()
     }
 
     var body: some Scene {

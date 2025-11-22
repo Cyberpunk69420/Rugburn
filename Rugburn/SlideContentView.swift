@@ -7,6 +7,9 @@ struct SlideContentView: View {
     @State private var loadError: String? = nil
     @State private var addressBarText: String = ""
     @State private var currentPageURL: URL? = nil
+    @State private var showingHotkeyInfo: Bool = false
+
+    private var appController: AppController { AppController.shared }
 
     private var effectiveURL: URL? {
         currentPageURL ?? sidebarModel.selected?.url
@@ -38,10 +41,10 @@ struct SlideContentView: View {
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
                         .background(Color(nsColor: NSColor.textBackgroundColor))
-                        .cornerRadius(10)
+                        .cornerRadius(16)
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.blue.opacity(0.15), lineWidth: 2)
+                                .stroke(Color.blue.opacity(0.20), lineWidth: 2)
                         )
                         .help("Type or paste a URL, then press Return or Go")
 
@@ -84,11 +87,26 @@ struct SlideContentView: View {
                         ? "Using mobile user agent"
                         : "Using desktop user agent"
                     )
+
+                    // Hotkey enable/disable toggle (match pin-toggle visual logic)
+                    Button(action: toggleHotkey) {
+                        Image(systemName: appController.isHotKeyEnabled ? "keyboard" : "keyboard.slash")
+                            .imageScale(.medium)
+                            .foregroundColor(appController.isHotKeyEnabled ? .blue : .primary)
+                    }
+                    .buttonStyle(.bordered)
+                    .frame(minWidth: 36)
+                    .help(appController.isHotKeyEnabled
+                          ? "Disable the ⌘+Shift+. global hotkey"
+                          : "Enable the ⌘+Shift+. global hotkey")
                 }
-                .padding(.horizontal, 5) // was 18, pull web content ~20px closer to sidebar
+                .padding(.horizontal, 5)
                 .padding(.top, 8)
                 .padding(.bottom, 8)
                 .background(Color(NSColor.windowBackgroundColor))
+                .sheet(isPresented: $showingHotkeyInfo) {
+                    HotkeyInfoView(isPresented: $showingHotkeyInfo)
+                }
 
                 // Web content in rounded card
                 if let url = effectiveURL {
@@ -226,5 +244,64 @@ struct SlideContentView: View {
 
         // Trigger a reload by updating currentPageURL (effectiveURL will change to this).
         currentPageURL = url
+    }
+
+    private func toggleHotkey() {
+        let newValue = !appController.isHotKeyEnabled
+        appController.setHotKeyEnabled(newValue)
+        if newValue {
+            // Show info when enabling
+            showingHotkeyInfo = true
+        }
+    }
+}
+
+struct HotkeyInfoView: View {
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("Rugburn Global Hotkey")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+
+                    Text("The current global shortcut is:")
+                        .font(.headline)
+
+                    Text("⌘+Shift+.")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.blue)
+
+                    Text("Use this shortcut to quickly show or hide the Rugburn panel from anywhere.")
+
+                        .foregroundColor(.secondary)
+                }
+
+
+                Section {
+                    Text("Changing the Hotkey")
+                        .fontWeight(.semibold)
+
+                    Text("Rugburn currently uses a fixed system-level shortcut based on the macOS hotkey API (Carbon): ⌘+Shift+.")
+                        .foregroundColor(.secondary)
+
+                    Text("Future versions will let you change this from inside Rugburn. For now, you can adjust other shortcuts globally in System Settings > Keyboard. Press Close or Escape to dismiss this window.")
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical)
+            }
+            .frame(width: 450, height: 400)
+            .navigationTitle("Hotkey Info")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") {
+                        isPresented = false
+                    }
+                }
+            }
+        }
     }
 }

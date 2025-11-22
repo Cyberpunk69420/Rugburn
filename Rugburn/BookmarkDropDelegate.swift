@@ -13,7 +13,7 @@ struct BookmarkDropDelegate: DropDelegate {
               let fromIndex = items.firstIndex(of: draggingItem),
               let toIndex = items.firstIndex(of: item) else { return }
 
-        withAnimation(.easeInOut(duration: 0)) {
+        withAnimation(.easeInOut(duration: 0.2)) {
             items.move(fromOffsets: IndexSet(integer: fromIndex), toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex)
         }
     }
