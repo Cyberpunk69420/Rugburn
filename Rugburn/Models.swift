@@ -71,6 +71,13 @@ class SidebarViewModel: ObservableObject {
         }
     }
 
+    /// Public helper so other parts of the app (e.g. star/bookmark button) can trigger a favicon fetch
+    func fetchFaviconIfNeeded(for item: WebAppItem, forceRefresh: Bool = false) {
+        guard let index = items.firstIndex(of: item) else { return }
+        if !forceRefresh, items[index].faviconFileName != nil { return }
+        fetchFavicon(forIndex: index, forceRefresh: forceRefresh)
+    }
+
     func addItem() {
         let raw = addUrl.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !addName.isEmpty,

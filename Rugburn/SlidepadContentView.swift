@@ -1,4 +1,5 @@
 import SwiftUI
+import FaviconFinder
 
 struct SlidepadContentView: View {
     @ObservedObject var sidebarModel: SidebarViewModel
@@ -140,6 +141,8 @@ struct SlidepadContentView: View {
         let item = WebAppItem(name: displayName, url: url, iconSymbol: nil, userAgent: nil)
         sidebarModel.items.append(item)
         Persistence.saveItems(sidebarModel.items)
+        // Trigger favicon fetch for this newly created bookmark as well
+        sidebarModel.fetchFaviconIfNeeded(for: item)
         sidebarModel.selected = item
     }
 }
