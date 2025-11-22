@@ -83,28 +83,19 @@ struct SlideContentView: View {
                             .fill(Color(NSColor.windowBackgroundColor))
                             .shadow(color: Color.black.opacity(0.22), radius: 12, x: 0, y: 8)
 
-                        MacWebView(
-                            url: url,
-                            loadError: $loadError,
-                            userAgent: currentUserAgent,
-                            onURLChange: { newURL in
-                                guard let finalURL = newURL else { return }
-                                currentPageURL = finalURL
-                                addressBarText = finalURL.absoluteString
+                        MacWebView(url: url, loadError: $loadError, userAgent: currentUserAgent)
+                            .id(url)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .onAppear {
+                                addressBarText = url.absoluteString
+                                currentPageURL = url
                             }
-                        )
-                        .id(url)
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        .onAppear {
-                            addressBarText = url.absoluteString
-                            currentPageURL = url
-                        }
-                        .onChange(of: sidebarModel.selected?.id) { _, _ in
-                            if let selectedURL = sidebarModel.selected?.url {
-                                currentPageURL = selectedURL
-                                addressBarText = selectedURL.absoluteString
+                            .onChange(of: sidebarModel.selected?.id) { oldValue, newValue in
+                                if let selectedURL = sidebarModel.selected?.url {
+                                    currentPageURL = selectedURL
+                                    addressBarText = selectedURL.absoluteString
+                                }
                             }
-                        }
                     }
                     .padding(.horizontal, 18)
                     .padding(.bottom, 14)
@@ -203,6 +194,6 @@ struct SlideContentView: View {
         Persistence.saveItems(sidebarModel.items)
         // Trigger favicon fetch for this newly created bookmark as well
         sidebarModel.fetchFaviconIfNeeded(for: item)
-        sidebarModel.selected = item
+        // Do NOT change sidebarModel.selected here; that would reload/navigate the page on bookmark.
     }
 }
