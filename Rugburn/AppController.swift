@@ -25,6 +25,11 @@ final class AppController: ObservableObject {
     // Simple debouncing / state
     private var panelLastShownAt: Date?
 
+    // Expose current pin state from the panel's sidebar model
+    private var isPinned: Bool {
+        panelController?.sidebarPinned ?? false
+    }
+
     init() {
         panelController = SlidePanelWindowController()
         hotKeyManager = HotKeyManager()
@@ -49,17 +54,11 @@ final class AppController: ObservableObject {
         hotKeyManager?.registerDefaultHotKey()
     }
 
-    // Convenience accessor for pin state
-    private var isPinned: Bool {
-        panelController?.sidebarPinned ?? false
-    }
-
     // MARK: - Public control
 
     func togglePanel() {
         Logger.log("Toggling panel. Current state: \(isPanelVisible)")
         if isPanelVisible {
-            // For global hotkey, we allow explicit hide even when pinned.
             hidePanel()
         } else {
             showPanelAtEdge()
@@ -100,39 +99,62 @@ final class AppController: ObservableObject {
         let atRightEdge = abs(mouseLocation.x - rightEdgeX) <= edgeThreshold
         let farFromEdge = rightEdgeX - mouseLocation.x > edgeHideThreshold
 
+        // Use actual window frame if visible
         let panelFrame = (panelController?.window?.isVisible == true)
             ? (panelController?.window?.frame ?? .zero)
             : .zero
 
         // Slightly expanded hitbox so tiny movements near the frame don't instantly count as outside.
-        let expandedFrame = panelFrame.insetBy(dx: -16, dy: -16)
+        let expandedFrame = panelFrame.insetBy(dx: -8, dy: -8)
         let mouseInPanel = expandedFrame.contains(mouseLocation)
 
-        Logger.log("mouseMoved: location=\(mouseLocation), atRightEdge=\(atRightEdge), farFromEdge=\(farFromEdge), mouseInPanel=\(mouseInPanel), isPanelVisible=\(isPanelVisible), isPinned=\(isPinned)")
+        Logger.log("mouseMoved: loc=\(mouseLocation), atRightEdge=\(atRightEdge), farFromEdge=\(farFromEdge), mouseInPanel=\(mouseInPanel), isPanelVisible=\(isPanelVisible), isPinned=\(isPinned)")
+
+        // If the panel is visible and the mouse is over it, we never auto-hide.
+        if isPanelVisible && mouseInPanel {
+            hidePanelTimer?.invalidate()
+            return
+        }
 
         if atRightEdge {
+            // At the right edge: cancel pending hides and consider showing
             hidePanelTimer?.invalidate()
-            let recentlyHidden = (panelLastShownAt?.timeIntervalSinceNow ?? -10) > -1.0
+            let recentlyHidden = (panelLastShownAt?.timeIntervalSinceNow ?? -10) > -0.3
             if !isPanelVisible && !recentlyHidden {
                 Logger.log("Mouse at right edge, showing panel")
                 showPanelAtEdge()
             }
-        } else if isPanelVisible && farFromEdge && !mouseInPanel {
-            // Don't hide immediately after showing to avoid flicker
-            let recentlyShown = (panelLastShownAt?.timeIntervalSinceNow ?? -10) > -0.7
-            if recentlyShown { return }
+        } else if isPanelVisible {
+            // Panel is visible, mouse is NOT over the panel.
 
-            // Respect pin: don't schedule auto-hide while pinned
-            if isPinned { return }
+            if farFromEdge {
+                // Don't hide immediately after showing to avoid flicker
+                let recentlyShown = (panelLastShownAt?.timeIntervalSinceNow ?? -10) > -0.7
+                if recentlyShown { return }
 
-            hidePanelTimer?.invalidate()
-            hidePanelTimer = Timer.scheduledTimer(withTimeInterval: edgeHideDelay, repeats: false) { [weak self] _ in
-                guard let self else { return }
-                Logger.log("Auto-hiding panel after mouse moved away")
-                // Double-check pin state at fire time
-                if !self.isPinned {
-                    self.hidePanel()
+                // Respect pin: don't schedule auto-hide while pinned
+                if isPinned { return }
+
+                hidePanelTimer?.invalidate()
+                hidePanelTimer = Timer.scheduledTimer(withTimeInterval: edgeHideDelay, repeats: false) { [weak self] _ in
+                    guard let self else { return }
+                    Logger.log("Auto-hiding panel after mouse moved away")
+
+                    // Double-check pin state and mouse position at fire time
+                    let currentLocation = NSEvent.mouseLocation
+                    let currentPanelFrame = (self.panelController?.window?.isVisible == true)
+                        ? (self.panelController?.window?.frame ?? .zero)
+                        : .zero
+                    let currentExpanded = currentPanelFrame.insetBy(dx: -8, dy: -8)
+                    let stillInPanel = currentExpanded.contains(currentLocation)
+
+                    if !self.isPinned && !stillInPanel {
+                        self.hidePanel()
+                    }
                 }
+            } else {
+                // We moved back closer to the edge or panel: cancel pending hide.
+                hidePanelTimer?.invalidate()
             }
         }
     }
