@@ -16,16 +16,23 @@ struct MacWebView: NSViewRepresentable {
         }
         web.navigationDelegate = context.coordinator
         Logger.log("Creating WKWebView for URL: \(url) with UA: \(userAgent ?? "default")")
+        // Do not set lastLoadedURL yet; let updateNSView trigger the initial load.
         return web
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
+        // Update user agent if needed
         if webView.customUserAgent != userAgent {
             webView.customUserAgent = userAgent
         }
-        Logger.log("Loading URL in WKWebView: \(url) with UA: \(userAgent ?? "default")")
-        let request = URLRequest(url: url)
-        webView.load(request)
+
+        // Only load if this is the first time or the URL actually changed.
+        if context.coordinator.lastLoadedURL != url {
+            Logger.log("Loading URL in WKWebView: \(url) with UA: \(userAgent ?? "default")")
+            let request = URLRequest(url: url)
+            webView.load(request)
+            context.coordinator.lastLoadedURL = url
+        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -34,6 +41,8 @@ struct MacWebView: NSViewRepresentable {
 
     class Coordinator: NSObject, WKNavigationDelegate {
         var parent: MacWebView
+        var lastLoadedURL: URL?
+
         init(_ parent: MacWebView) { self.parent = parent }
 
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {

@@ -14,10 +14,15 @@ struct SlideContentView: View {
 
     private var currentUserAgent: String? {
         if sidebarModel.useMobileUserAgent {
-            // iPhone Safari UA
-            return "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+            // Mobile: iPhone Safari UA similar to iOS 17 Safari
+            return "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) " +
+                   "AppleWebKit/605.1.15 (KHTML, like Gecko) " +
+                   "Version/17.4 Mobile/15E148 Safari/604.1"
         } else {
-            return nil // system desktop UA
+            // Desktop: Chrome on macOS UA for maximum compatibility
+            return "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) " +
+                   "AppleWebKit/537.36 (KHTML, like Gecko) " +
+                   "Chrome/124.0.0.0 Safari/537.36"
         }
     }
 
@@ -27,7 +32,7 @@ struct SlideContentView: View {
 
             VStack(spacing: 0) {
                 // Toolbar integrated with card
-                HStack(spacing: 8) {
+                HStack(spacing: 5) {
                     TextField("Enter URL", text: $addressBarText, onCommit: navigateFromAddressBar)
                         .textFieldStyle(PlainTextFieldStyle())
                         .padding(.horizontal, 10)
@@ -36,7 +41,7 @@ struct SlideContentView: View {
                         .cornerRadius(10)
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.black.opacity(0.15), lineWidth: 1)
+                                .stroke(Color.blue.opacity(0.15), lineWidth: 2)
                         )
                         .help("Type or paste a URL, then press Return or Go")
 
@@ -45,7 +50,7 @@ struct SlideContentView: View {
                             .imageScale(.large)
                     }
                     .buttonStyle(.borderedProminent)
-                    .help("Load the URL in the Rugburn")
+                    .help("Load the URL in Rugburn")
 
                     Button(action: saveCurrentAddressAsShortcut) {
                         Image(systemName: "star.fill")
@@ -64,11 +69,12 @@ struct SlideContentView: View {
                     Button(action: { sidebarModel.isPinned.toggle() }) {
                         Image(systemName: sidebarModel.isPinned ? "pin.fill" : "pin")
                             .imageScale(.medium)
+                            .foregroundColor(sidebarModel.isPinned ? .blue : .primary)
                     }
                     .buttonStyle(.bordered)
                     .help(sidebarModel.isPinned ? "Panel is pinned" : "Pin the panel so it doesn't auto-hide")
 
-                    Button(action: { sidebarModel.useMobileUserAgent.toggle() }) {
+                    Button(action: { sidebarModel.useMobileUserAgent.toggle(); reloadForUserAgentChange() }) {
                         Image(systemName: sidebarModel.useMobileUserAgent ? "iphone" : "desktopcomputer")
                             .imageScale(.medium)
                     }
@@ -79,8 +85,8 @@ struct SlideContentView: View {
                         : "Using desktop user agent"
                     )
                 }
-                .padding(.horizontal, 18)
-                .padding(.top, 12)
+                .padding(.horizontal, 5) // was 18, pull web content ~20px closer to sidebar
+                .padding(.top, 8)
                 .padding(.bottom, 8)
                 .background(Color(NSColor.windowBackgroundColor))
 
@@ -89,7 +95,7 @@ struct SlideContentView: View {
                     ZStack {
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .fill(Color(NSColor.windowBackgroundColor))
-                            .shadow(color: Color.black.opacity(0.22), radius: 12, x: 0, y: 8)
+                            .shadow(color: Color.blue.opacity(0.22), radius: 6, x: 0, y: 8)
 
                         MacWebView(
                             url: url,
@@ -114,7 +120,7 @@ struct SlideContentView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 18)
+                    .padding(.horizontal, 5) // was 18, match toolbar to align edges
                     .padding(.bottom, 14)
                 } else {
                     Text("Select an app from the sidebar or enter a URL")
@@ -127,7 +133,6 @@ struct SlideContentView: View {
     }
 
     // MARK: - URL / search classification helpers
-
     private enum AddressInput {
         case url(URL)
         case search(String)
@@ -137,37 +142,24 @@ struct SlideContentView: View {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 
-        // If user typed a full URL (with scheme), try it directly
-        if let url = URL(string: trimmed), url.scheme != nil {
-            return .url(url)
-        }
-
-        // If it contains spaces, treat as a search query
+        if let url = URL(string: trimmed), url.scheme != nil { return .url(url) }
         if trimmed.contains(" ") { return .search(trimmed) }
 
-        // Heuristic: if it has a dot or a colon (port), treat as a host, otherwise search
         let looksLikeHost = trimmed.contains(".") || trimmed.contains(":") || trimmed == "localhost"
         if looksLikeHost {
             let candidate = "https://" + trimmed
-            if let url = URL(string: candidate) {
-                return .url(url)
-            }
+            if let url = URL(string: candidate) { return .url(url) }
         }
-
-        // Fallback: search term (single word, no obvious host)
         return .search(trimmed)
     }
 
     private func googleSearchURL(for query: String) -> URL? {
         var components = URLComponents(string: "https://www.google.com/search")
-        components?.queryItems = [
-            URLQueryItem(name: "q", value: query)
-        ]
+        components?.queryItems = [URLQueryItem(name: "q", value: query)]
         return components?.url
     }
 
     // MARK: - Actions
-
     private func navigateFromAddressBar() {
         let raw = addressBarText
         guard let classified = classifyAddressInput(raw) else { return }
@@ -209,8 +201,30 @@ struct SlideContentView: View {
         let item = WebAppItem(name: displayName, url: finalURL, iconSymbol: nil, userAgent: nil)
         sidebarModel.items.append(item)
         Persistence.saveItems(sidebarModel.items)
-        // Trigger favicon fetch for this newly created bookmark as well
         sidebarModel.fetchFaviconIfNeeded(for: item)
-        // Do NOT change sidebarModel.selected here; that would reload/navigate the page on bookmark.
+        // Do NOT change sidebarModel.selected here; that would reload the page on bookmark.
+    }
+
+    // MARK: - Helpers for UA toggle
+
+    /// When switching between mobile and desktop, reload the current page.
+    /// If switching to desktop from an m. domain, request the non-m. host instead.
+    private func reloadForUserAgentChange() {
+        guard var url = currentPageURL ?? sidebarModel.selected?.url else { return }
+
+        if !sidebarModel.useMobileUserAgent {
+            // We just switched to desktop; if this is an m.* host, strip the "m." prefix.
+            if let host = url.host, host.hasPrefix("m."),
+               var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+                let newHost = String(host.dropFirst(2))
+                components.host = newHost
+                if let rewritten = components.url {
+                    url = rewritten
+                }
+            }
+        }
+
+        // Trigger a reload by updating currentPageURL (effectiveURL will change to this).
+        currentPageURL = url
     }
 }
