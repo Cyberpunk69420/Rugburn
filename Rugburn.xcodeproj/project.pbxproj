@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		6B0712A02ED11B7800ACC83A /* FaviconFinder in Frameworks */ = {isa = PBXBuildFile; productRef = 6B07129F2ED11B7800ACC83A /* FaviconFinder */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		6B26F35C2ECEB1B0003111E9 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -56,6 +60,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6B0712A02ED11B7800ACC83A /* FaviconFinder in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -114,6 +119,7 @@
 			);
 			name = Rugburn;
 			packageProductDependencies = (
+				6B07129F2ED11B7800ACC83A /* FaviconFinder */,
 			);
 			productName = Rugburn;
 			productReference = 6B26F34E2ECEB1B0003111E9 /* Rugburn.app */;
@@ -191,6 +197,9 @@
 			);
 			mainGroup = 6B26F3452ECEB1B0003111E9;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				6B07129E2ED11B7800ACC83A /* XCRemoteSwiftPackageReference "FaviconFinder" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6B26F34F2ECEB1B0003111E9 /* Products */;
 			projectDirPath = "";
@@ -643,6 +652,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		6B07129E2ED11B7800ACC83A /* XCRemoteSwiftPackageReference "FaviconFinder" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/will-lumley/FaviconFinder.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.1.5;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		6B07129F2ED11B7800ACC83A /* FaviconFinder */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6B07129E2ED11B7800ACC83A /* XCRemoteSwiftPackageReference "FaviconFinder" */;
+			productName = FaviconFinder;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 6B26F3462ECEB1B0003111E9 /* Project object */;
 }
