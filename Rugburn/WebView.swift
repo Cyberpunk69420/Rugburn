@@ -5,6 +5,8 @@ struct MacWebView: NSViewRepresentable {
     let url: URL
     @Binding var loadError: String?
     var userAgent: String? = nil
+    // Notify SwiftUI when the web view's URL changes (e.g. link clicks)
+    var onURLChange: ((URL?) -> Void)? = nil
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
@@ -40,6 +42,8 @@ struct MacWebView: NSViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             Logger.log("WebView finished navigation: \(parent.url)")
             parent.loadError = nil
+            // Report current URL back to SwiftUI when navigation completes
+            parent.onURLChange?(webView.url)
         }
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
             Logger.log("WebView navigation failed: \(error.localizedDescription)", level: .error)
