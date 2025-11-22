@@ -83,7 +83,7 @@ struct SlidepadContentView: View {
                             addressBarText = url.absoluteString
                             currentPageURL = url
                         }
-                        .onChange(of: sidebarModel.selected?.id) { _ in
+                        .onChange(of: sidebarModel.selected?.id) { oldValue, newValue in
                             if let selectedURL = sidebarModel.selected?.url {
                                 currentPageURL = selectedURL
                                 addressBarText = selectedURL.absoluteString

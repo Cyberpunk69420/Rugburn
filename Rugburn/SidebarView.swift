@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import AppKit
 
 struct SidebarView: View {
     @ObservedObject var viewModel: SidebarViewModel
@@ -11,6 +12,15 @@ struct SidebarView: View {
         return colors[idx]
     }
 
+    private func faviconImage(for item: WebAppItem) -> NSImage? {
+        guard let name = item.faviconFileName,
+              let url = FaviconCache.shared.fileURL(forFileName: name),
+              let image = NSImage(contentsOf: url) else {
+            return nil
+        }
+        return image
+    }
+
     var body: some View {
         VStack {
             ScrollView {
@@ -18,21 +28,40 @@ struct SidebarView: View {
                     Button(action: {
                         viewModel.selected = item
                     }) {
-                        ZStack {
-                            Circle().fill(colorForItem(item))
-                            Text(String(item.name.prefix(1)))
-                                .foregroundColor(.white)
-                                .font(.headline)
+                        let isSelected = viewModel.selected?.id == item.id
+
+                        Group {
+                            if let nsImage = faviconImage(for: item) {
+                                Image(nsImage: nsImage)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 24, height: 24)
+                                    .padding(6)
+                                    .background(
+                                        isSelected
+                                        ? Color.accentColor.opacity(0.2)
+                                        : Color.clear
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                    .shadow(radius: 4)
+                            } else {
+                                ZStack {
+                                    Circle().fill(colorForItem(item))
+                                    Text(String(item.name.prefix(1)))
+                                        .foregroundColor(.white)
+                                        .font(.headline)
+                                }
+                                .frame(width: 32, height: 32)
+                                .padding(8)
+                                .background(
+                                    isSelected
+                                    ? Color.accentColor.opacity(0.2)
+                                    : Color.clear
+                                )
+                                .clipShape(Circle())
+                                .shadow(radius: 4)
+                            }
                         }
-                        .frame(width: 32, height: 32)
-                        .padding(8)
-                        .background(
-                            viewModel.selected?.id == item.id
-                            ? Color.accentColor.opacity(0.2)
-                            : Color.clear
-                        )
-                        .clipShape(Circle())
-                        .shadow(radius: 4)
                     }
                     .buttonStyle(PlainButtonStyle())
                     .contextMenu {
