@@ -60,6 +60,14 @@ struct SlideContentView: View {
                     )
                     .help("Save the current URL as a bookmark in the sidebar")
 
+                    // Pin toggle
+                    Button(action: { sidebarModel.isPinned.toggle() }) {
+                        Image(systemName: sidebarModel.isPinned ? "pin.fill" : "pin")
+                            .imageScale(.medium)
+                    }
+                    .buttonStyle(.bordered)
+                    .help(sidebarModel.isPinned ? "Panel is pinned" : "Pin the panel so it doesn't auto-hide")
+
                     Button(action: { sidebarModel.useMobileUserAgent.toggle() }) {
                         Image(systemName: sidebarModel.useMobileUserAgent ? "iphone" : "desktopcomputer")
                             .imageScale(.medium)
@@ -83,19 +91,28 @@ struct SlideContentView: View {
                             .fill(Color(NSColor.windowBackgroundColor))
                             .shadow(color: Color.black.opacity(0.22), radius: 12, x: 0, y: 8)
 
-                        MacWebView(url: url, loadError: $loadError, userAgent: currentUserAgent)
-                            .id(url)
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .onAppear {
-                                addressBarText = url.absoluteString
-                                currentPageURL = url
+                        MacWebView(
+                            url: url,
+                            loadError: $loadError,
+                            userAgent: currentUserAgent,
+                            onURLChange: { newURL in
+                                guard let finalURL = newURL else { return }
+                                currentPageURL = finalURL
+                                addressBarText = finalURL.absoluteString
                             }
-                            .onChange(of: sidebarModel.selected?.id) { oldValue, newValue in
-                                if let selectedURL = sidebarModel.selected?.url {
-                                    currentPageURL = selectedURL
-                                    addressBarText = selectedURL.absoluteString
-                                }
+                        )
+                        .id(url)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .onAppear {
+                            addressBarText = url.absoluteString
+                            currentPageURL = url
+                        }
+                        .onChange(of: sidebarModel.selected?.id) { _, _ in
+                            if let selectedURL = sidebarModel.selected?.url {
+                                currentPageURL = selectedURL
+                                addressBarText = selectedURL.absoluteString
                             }
+                        }
                     }
                     .padding(.horizontal, 18)
                     .padding(.bottom, 14)
