@@ -49,11 +49,17 @@ final class AppController: ObservableObject {
         hotKeyManager?.registerDefaultHotKey()
     }
 
+    // Convenience accessor for pin state
+    private var isPinned: Bool {
+        panelController?.sidebarPinned ?? false
+    }
+
     // MARK: - Public control
 
     func togglePanel() {
         Logger.log("Toggling panel. Current state: \(isPanelVisible)")
         if isPanelVisible {
+            // For global hotkey, we allow explicit hide even when pinned.
             hidePanel()
         } else {
             showPanelAtEdge()
@@ -102,7 +108,7 @@ final class AppController: ObservableObject {
         let expandedFrame = panelFrame.insetBy(dx: -16, dy: -16)
         let mouseInPanel = expandedFrame.contains(mouseLocation)
 
-        Logger.log("mouseMoved: location=\(mouseLocation), atRightEdge=\(atRightEdge), farFromEdge=\(farFromEdge), mouseInPanel=\(mouseInPanel), isPanelVisible=\(isPanelVisible)")
+        Logger.log("mouseMoved: location=\(mouseLocation), atRightEdge=\(atRightEdge), farFromEdge=\(farFromEdge), mouseInPanel=\(mouseInPanel), isPanelVisible=\(isPanelVisible), isPinned=\(isPinned)")
 
         if atRightEdge {
             hidePanelTimer?.invalidate()
@@ -116,11 +122,17 @@ final class AppController: ObservableObject {
             let recentlyShown = (panelLastShownAt?.timeIntervalSinceNow ?? -10) > -0.7
             if recentlyShown { return }
 
+            // Respect pin: don't schedule auto-hide while pinned
+            if isPinned { return }
+
             hidePanelTimer?.invalidate()
             hidePanelTimer = Timer.scheduledTimer(withTimeInterval: edgeHideDelay, repeats: false) { [weak self] _ in
                 guard let self else { return }
                 Logger.log("Auto-hiding panel after mouse moved away")
-                self.hidePanel()
+                // Double-check pin state at fire time
+                if !self.isPinned {
+                    self.hidePanel()
+                }
             }
         }
     }
@@ -139,11 +151,13 @@ final class AppController: ObservableObject {
 
         let clickInsidePanel = expandedFrame.contains(mouseLocation)
 
-        Logger.log("globalMouseDown: location=\(mouseLocation), clickInsidePanel=\(clickInsidePanel), isPanelVisible=\(isPanelVisible)")
+        Logger.log("globalMouseDown: location=\(mouseLocation), clickInsidePanel=\(clickInsidePanel), isPanelVisible=\(isPanelVisible), isPinned=\(isPinned)")
 
         if !clickInsidePanel {
-            // Click was outside our panel window: hide immediately.
-            hidePanel()
+            // Click was outside our panel window: hide immediately, unless pinned.
+            if !isPinned {
+                hidePanel()
+            }
         }
     }
 

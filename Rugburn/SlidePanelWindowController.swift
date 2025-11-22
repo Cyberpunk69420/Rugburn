@@ -3,7 +3,7 @@ import SwiftUI
 import Combine
 import Foundation
 
-final class SlidePanelWindowController: NSWindowController {
+final class SlidePanelWindowController: NSWindowController, NSWindowDelegate {
     private final class SlidePanel: NSPanel {
         override var canBecomeKey: Bool { true }
         override var canBecomeMain: Bool { true }
@@ -11,6 +11,13 @@ final class SlidePanelWindowController: NSWindowController {
 
     private var hostingView: NSHostingView<AnyView>?
     private let sidebarModel = SidebarViewModel()
+
+    // Expose pin state so external controllers can respect it
+    var sidebarPinned: Bool { sidebarModel.isPinned }
+
+    // Global click-outside monitor and optional auto-hide timer
+    private var globalClickMonitor: Any?
+    private var autoHideTimer: Timer?
 
     init() {
         let initialFrame = CGRect(
@@ -52,10 +59,51 @@ final class SlidePanelWindowController: NSWindowController {
         super.init(window: panel)
         self.hostingView = hosting
         self.window?.isReleasedWhenClosed = false
+        self.window?.delegate = self
+
+        // Set up global click-outside monitoring
+        globalClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            guard let self = self, let window = self.window else { return }
+            let mouseLocation = NSEvent.mouseLocation
+            // If click is outside the panel frame, try to auto-hide
+            if !window.frame.contains(mouseLocation) {
+                self.attemptAutoHidePanel()
+            }
+        }
+    }
+
+    deinit {
+        if let monitor = globalClickMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
+        autoHideTimer?.invalidate()
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    // Attempt to auto-hide the panel, respecting pin state
+    func attemptAutoHidePanel() {
+        if sidebarModel.isPinned {
+            // When pinned, auto-hide is suspended
+            return
+        }
+        hidePanel()
+    }
+
+    // Optional: external callers can refresh the inactivity timer
+    func restartAutoHideTimer(interval: TimeInterval = 5.0) {
+        autoHideTimer?.invalidate()
+        guard !sidebarModel.isPinned else { return }
+        autoHideTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
+            self?.attemptAutoHidePanel()
+        }
+    }
+
+    func cancelAutoHideTimer() {
+        autoHideTimer?.invalidate()
+        autoHideTimer = nil
     }
 
     func showPanel() {
@@ -80,9 +128,14 @@ final class SlidePanelWindowController: NSWindowController {
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             window.animator().setFrame(endFrame, display: true)
         }
+
+        // Restart inactivity timer when panel is shown
+        restartAutoHideTimer()
     }
 
     func hidePanel() {
+        cancelAutoHideTimer()
+
         guard let window = self.window, let screen = NSScreen.main else {
             window?.orderOut(nil)
             return

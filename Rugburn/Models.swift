@@ -23,6 +23,7 @@ class SidebarViewModel: ObservableObject {
     @Published var addUrl: String = ""
     @Published var showAddSheet: Bool = false
     @Published var useMobileUserAgent: Bool = true
+    @Published var isPinned: Bool = false
 
     private let faviconService = FaviconService.shared
 

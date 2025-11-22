@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 import FaviconFinder
 
 struct SlideContentView: View {
@@ -108,21 +109,62 @@ struct SlideContentView: View {
         }
     }
 
+    // MARK: - URL / search classification helpers
+
+    private enum AddressInput {
+        case url(URL)
+        case search(String)
+    }
+
+    private func classifyAddressInput(_ raw: String) -> AddressInput? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        // If user typed a full URL (with scheme), try it directly
+        if let url = URL(string: trimmed), url.scheme != nil {
+            return .url(url)
+        }
+
+        // If it contains spaces, treat as a search query
+        if trimmed.contains(" ") { return .search(trimmed) }
+
+        // Heuristic: if it has a dot or a colon (port), treat as a host, otherwise search
+        let looksLikeHost = trimmed.contains(".") || trimmed.contains(":") || trimmed == "localhost"
+        if looksLikeHost {
+            let candidate = "https://" + trimmed
+            if let url = URL(string: candidate) {
+                return .url(url)
+            }
+        }
+
+        // Fallback: search term (single word, no obvious host)
+        return .search(trimmed)
+    }
+
+    private func googleSearchURL(for query: String) -> URL? {
+        var components = URLComponents(string: "https://www.google.com/search")
+        components?.queryItems = [
+            URLQueryItem(name: "q", value: query)
+        ]
+        return components?.url
+    }
+
     // MARK: - Actions
 
     private func navigateFromAddressBar() {
-        let raw = addressBarText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !raw.isEmpty else { return }
+        let raw = addressBarText
+        guard let classified = classifyAddressInput(raw) else { return }
 
-        let normalized: String
-        if raw.hasPrefix("http://") || raw.hasPrefix("https://") {
-            normalized = raw
-        } else {
-            normalized = "https://" + raw
+        let destination: URL?
+        switch classified {
+        case .url(let url):
+            destination = url
+        case .search(let query):
+            destination = googleSearchURL(for: query)
         }
 
-        guard let url = URL(string: normalized) else {
-            Logger.log("Invalid URL typed in address bar: \(raw)", level: .warning)
+        guard let url = destination else {
+            Logger.log("Invalid address bar input: \(raw)", level: .warning)
             return
         }
 
@@ -130,24 +172,24 @@ struct SlideContentView: View {
     }
 
     private func saveCurrentAddressAsShortcut() {
-        let raw = addressBarText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !raw.isEmpty else { return }
+        let raw = addressBarText
+        guard let classified = classifyAddressInput(raw) else { return }
 
-        let urlString: String
-        if raw.hasPrefix("http://") || raw.hasPrefix("https://") {
-            urlString = raw
-        } else {
-            urlString = "https://" + raw
+        let finalURL: URL
+        switch classified {
+        case .url(let url):
+            finalURL = url
+        case .search(let query):
+            guard let searchURL = googleSearchURL(for: query) else { return }
+            finalURL = searchURL
         }
 
-        guard let url = URL(string: urlString) else { return }
-
-        let hostName = url.host ?? urlString
+        let hostName = finalURL.host ?? finalURL.absoluteString
         let displayName = hostName
             .replacingOccurrences(of: "www.", with: "")
             .capitalized
 
-        let item = WebAppItem(name: displayName, url: url, iconSymbol: nil, userAgent: nil)
+        let item = WebAppItem(name: displayName, url: finalURL, iconSymbol: nil, userAgent: nil)
         sidebarModel.items.append(item)
         Persistence.saveItems(sidebarModel.items)
         // Trigger favicon fetch for this newly created bookmark as well

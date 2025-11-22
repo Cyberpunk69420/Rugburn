@@ -74,6 +74,21 @@ struct SidebarView: View {
 
             Spacer(minLength: 8)
 
+            // Pin toggle above the add button
+            Button(action: { viewModel.isPinned.toggle() }) {
+                Image(systemName: viewModel.isPinned ? "pin.fill" : "pin")
+                    .resizable()
+                    .frame(width: 18, height: 18)
+                    .padding(8)
+                    .foregroundColor(viewModel.isPinned ? .accentColor : .primary)
+                    .background(
+                        Circle()
+                            .fill(viewModel.isPinned ? Color.accentColor.opacity(0.18) : Color.clear)
+                    )
+            }
+            .buttonStyle(PlainButtonStyle())
+            .help(viewModel.isPinned ? "Panel is pinned (won't auto-hide)" : "Pin panel to keep it visible")
+
             Button(action: { viewModel.showAddSheet = true }) {
                 Image(systemName: "plus.circle")
                     .resizable()
