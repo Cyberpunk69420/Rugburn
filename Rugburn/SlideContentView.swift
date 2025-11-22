@@ -1,7 +1,7 @@
 import SwiftUI
 import FaviconFinder
 
-struct SlidepadContentView: View {
+struct SlideContentView: View {
     @ObservedObject var sidebarModel: SidebarViewModel
     @State private var loadError: String? = nil
     @State private var addressBarText: String = ""
@@ -25,33 +25,33 @@ struct SlidepadContentView: View {
             SidebarView(viewModel: sidebarModel)
 
             VStack(spacing: 0) {
-                // Toolbar
+                // Toolbar integrated with card
                 HStack(spacing: 8) {
                     TextField("Enter URL", text: $addressBarText, onCommit: navigateFromAddressBar)
                         .textFieldStyle(PlainTextFieldStyle())
-                        .padding(.horizontal, 8)
+                        .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(Color.white)
-                        .foregroundColor(.black)
+                        .background(Color(nsColor: NSColor.textBackgroundColor))
+                        .cornerRadius(10)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .stroke(Color.gray.opacity(0.6), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.black.opacity(0.15), lineWidth: 1)
                         )
-                        .cornerRadius(6)
                         .help("Type or paste a URL, then press Return or Go")
 
                     Button(action: navigateFromAddressBar) {
                         Image(systemName: "arrow.right.circle.fill")
                             .imageScale(.large)
                     }
-                    .buttonStyle(.bordered)
-                    .help("Load the URL in the slidepad")
+                    .buttonStyle(.borderedProminent)
+                    .help("Load the URL in the Rugburn")
 
                     Button(action: saveCurrentAddressAsShortcut) {
                         Image(systemName: "star.fill")
                             .imageScale(.large)
                     }
                     .buttonStyle(.bordered)
+                    .tint(.yellow)
                     .disabled(
                         addressBarText
                             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -70,29 +70,38 @@ struct SlidepadContentView: View {
                         : "Using desktop user agent"
                     )
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 18)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
                 .background(Color(NSColor.windowBackgroundColor))
 
-                Divider()
-
-                // Web content
+                // Web content in rounded card
                 if let url = effectiveURL {
-                    MacWebView(url: url, loadError: $loadError, userAgent: currentUserAgent)
-                        .id(url)
-                        .onAppear {
-                            addressBarText = url.absoluteString
-                            currentPageURL = url
-                        }
-                        .onChange(of: sidebarModel.selected?.id) { oldValue, newValue in
-                            if let selectedURL = sidebarModel.selected?.url {
-                                currentPageURL = selectedURL
-                                addressBarText = selectedURL.absoluteString
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Color(NSColor.windowBackgroundColor))
+                            .shadow(color: Color.black.opacity(0.22), radius: 12, x: 0, y: 8)
+
+                        MacWebView(url: url, loadError: $loadError, userAgent: currentUserAgent)
+                            .id(url)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .onAppear {
+                                addressBarText = url.absoluteString
+                                currentPageURL = url
                             }
-                        }
+                            .onChange(of: sidebarModel.selected?.id) { oldValue, newValue in
+                                if let selectedURL = sidebarModel.selected?.url {
+                                    currentPageURL = selectedURL
+                                    addressBarText = selectedURL.absoluteString
+                                }
+                            }
+                    }
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 14)
                 } else {
                     Text("Select an app from the sidebar or enter a URL")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color(NSColor.windowBackgroundColor))
                 }
             }
             .background(Color(NSColor.windowBackgroundColor))

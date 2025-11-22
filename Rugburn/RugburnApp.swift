@@ -27,7 +27,7 @@ struct RugburnApp: App {
         splash.isReleasedWhenClosed = true
         splash.contentView = NSHostingView(rootView: SplashView())
         splash.makeKeyAndOrderFront(nil)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             splash.close()
         }
     }

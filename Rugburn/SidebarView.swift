@@ -21,63 +21,63 @@ struct SidebarView: View {
         return image
     }
 
+    private var sidebarBackground: Color {
+        Color(nsColor: NSColor.controlBackgroundColor)
+    }
+
     var body: some View {
-        VStack {
+        VStack(spacing: 8) {
             ScrollView {
-                ForEach(viewModel.items) { item in
-                    Button(action: {
-                        viewModel.selected = item
-                    }) {
+                VStack(spacing: 8) {
+                    ForEach(viewModel.items) { item in
                         let isSelected = viewModel.selected?.id == item.id
 
-                        Group {
-                            if let nsImage = faviconImage(for: item) {
-                                Image(nsImage: nsImage)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 24, height: 24)
-                                    .padding(6)
+                        Button(action: {
+                            viewModel.selected = item
+                        }) {
+                            Group {
+                                if let nsImage = faviconImage(for: item) {
+                                    Image(nsImage: nsImage)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 30, height: 30)
+                                        .padding(6)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                .fill(isSelected ? Color.teal.opacity(0.25) : Color.clear)
+                                        )
+                                } else {
+                                    ZStack {
+                                        Circle().fill(colorForItem(item))
+                                        Text(String(item.name.prefix(1)))
+                                            .foregroundColor(.white)
+                                            .font(.headline)
+                                    }
+                                    .frame(width: 32, height: 32)
                                     .background(
-                                        isSelected
-                                        ? Color.accentColor.opacity(0.2)
-                                        : Color.clear
+                                        Circle().fill(isSelected ? Color.accentColor.opacity(0.25) : Color.clear)
                                     )
-                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                                    .shadow(radius: 4)
-                            } else {
-                                ZStack {
-                                    Circle().fill(colorForItem(item))
-                                    Text(String(item.name.prefix(1)))
-                                        .foregroundColor(.white)
-                                        .font(.headline)
                                 }
-                                .frame(width: 32, height: 32)
-                                .padding(8)
-                                .background(
-                                    isSelected
-                                    ? Color.accentColor.opacity(0.2)
-                                    : Color.clear
-                                )
-                                .clipShape(Circle())
-                                .shadow(radius: 4)
                             }
                         }
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .contextMenu {
-                        Button("Delete", role: .destructive) {
-                            viewModel.delete(item)
+                        .buttonStyle(PlainButtonStyle())
+                        .contextMenu {
+                            Button("Delete", role: .destructive) {
+                                viewModel.delete(item)
+                            }
                         }
+                        .help("\(item.name) — \(item.url.absoluteString)")
                     }
-                    .help("\(item.name) — \(item.url.absoluteString)")
                 }
+                .padding(.top, 10)
             }
-            Spacer()
+
+            Spacer(minLength: 8)
 
             Button(action: { viewModel.showAddSheet = true }) {
                 Image(systemName: "plus.circle")
                     .resizable()
-                    .frame(width: 32, height: 32)
+                    .frame(width: 25, height: 25)
                     .padding(8)
             }
             .help("Add a new bookmark")
@@ -98,9 +98,15 @@ struct SidebarView: View {
                 .frame(width: 300)
             }
         }
-        .frame(width: 80)
-        .background(Color(NSColor.windowBackgroundColor))
-        .cornerRadius(16)
-        .shadow(radius: 8)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 6)
+        .frame(width: 72)
+        .background(
+            sidebarBackground
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: Color.black.opacity(0.18), radius: 10, x: 0, y: 4)
+        .padding(.leading, 8)
+        .padding(.vertical, 8)
     }
 }

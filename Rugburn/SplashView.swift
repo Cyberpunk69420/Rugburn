@@ -6,7 +6,7 @@ struct SplashView: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 48))
                 .foregroundColor(.accentColor)
-            Text("Rugburn is launching...")
+            Text("Sliding across the rug on your knee..")
                 .font(.title)
                 .padding(.top, 8)
         }
