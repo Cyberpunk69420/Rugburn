@@ -8,10 +8,12 @@ final class AppController: ObservableObject {
     @Published var isPanelVisible: Bool = false
     private var panelController: SlidePanelWindowController?
     private var hotKeyManager: HotKeyManager?
-    private var mouseMonitor: Any?
+    // Use separate monitors for active (local) and inactive (global) app states
+    private var globalMouseMonitor: Any?
+    private var localMouseMonitor: Any?
     private let edgeThreshold: CGFloat = 8.0
     private let edgeHideThreshold: CGFloat = 80.0   // a bit farther from edge before hiding
-    private let edgeHideDelay: TimeInterval = 0.8   // slightly longer delay before auto-hide
+    private let edgeHideDelay: TimeInterval = 1.2   // slightly longer delay before auto-hide
     private var hidePanelTimer: Timer?
 
     private var lastEdgeState: Bool = false
@@ -26,14 +28,21 @@ final class AppController: ObservableObject {
             Logger.log("Global hotkey triggered panel toggle")
             DispatchQueue.main.async { self?.togglePanel() }
         }
-        mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: .mouseMoved) { [weak self] event in
+        // Global monitor: receives events when app is NOT active
+        globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: .mouseMoved) { [weak self] event in
             self?.handleMouseMoved(event)
         }
-        Logger.log("AppController initialized, mouse monitor installed")
+        // Local monitor: receives events when app IS active
+        localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: .mouseMoved) { [weak self] event in
+            self?.handleMouseMoved(event)
+            return event
+        }
+        Logger.log("AppController initialized, mouse monitors installed")
     }
 
     deinit {
-        if let monitor = mouseMonitor { NSEvent.removeMonitor(monitor) }
+        if let monitor = globalMouseMonitor { NSEvent.removeMonitor(monitor) }
+        if let monitor = localMouseMonitor { NSEvent.removeMonitor(monitor) }
     }
 
     func start() {
@@ -64,7 +73,9 @@ final class AppController: ObservableObject {
         let farFromEdge = rightEdgeX - mouseLocation.x > edgeHideThreshold
 
         let panelFrame = (panelController?.window?.isVisible == true) ? (panelController?.window?.frame ?? .zero) : .zero
-        let expandedFrame = panelFrame.insetBy(dx: -4, dy: -4)
+        // Make the effective panel hitbox more forgiving so tiny movements near the border
+        // don't immediately count as "outside" and trigger an auto-hide.
+        let expandedFrame = panelFrame.insetBy(dx: -16, dy: -16)
         let mouseInPanel = expandedFrame.contains(mouseLocation)
 
         Logger.log("mouseMoved: location=\(mouseLocation), atRightEdge=\(atRightEdge), farFromEdge=\(farFromEdge), mouseInPanel=\(mouseInPanel), isPanelVisible=\(isPanelVisible)")
