@@ -21,107 +21,93 @@ struct SidebarView: View {
         return image
     }
 
-    private var sidebarBackground: Color {
-        Color(nsColor: NSColor.controlBackgroundColor)
-    }
-
     var body: some View {
-        VStack(spacing: 8) {
-            ScrollView {
-                VStack(spacing: 8) {
-                    ForEach(viewModel.items) { item in
-                        let isSelected = viewModel.selected?.id == item.id
+        ZStack(alignment: .trailing) {
+            VStack(spacing: 8) {
+                ScrollView {
+                    VStack(spacing: 8) {
+                        ForEach(viewModel.items) { item in
+                            let isSelected = viewModel.selected?.id == item.id
 
-                        Button(action: {
-                            viewModel.selected = item
-                        }) {
-                            Group {
-                                if let nsImage = faviconImage(for: item) {
-                                    Image(nsImage: nsImage)
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 30, height: 30)
-                                        .padding(6)
+                            Button(action: { viewModel.selected = item }) {
+                                Group {
+                                    if let nsImage = faviconImage(for: item) {
+                                        Image(nsImage: nsImage)
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 30, height: 30)
+                                            .padding(6)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                    .fill(isSelected ? Color.teal.opacity(0.25) : Color.clear)
+                                            )
+                                    } else {
+                                        ZStack {
+                                            Circle().fill(colorForItem(item))
+                                            Text(String(item.name.prefix(1)))
+                                                .foregroundColor(.white)
+                                                .font(.headline)
+                                        }
+                                        .frame(width: 32, height: 32)
                                         .background(
-                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                .fill(isSelected ? Color.teal.opacity(0.25) : Color.clear)
+                                            Circle().fill(isSelected ? Color.accentColor.opacity(0.25) : Color.clear)
                                         )
-                                } else {
-                                    ZStack {
-                                        Circle().fill(colorForItem(item))
-                                        Text(String(item.name.prefix(1)))
-                                            .foregroundColor(.white)
-                                            .font(.headline)
                                     }
-                                    .frame(width: 32, height: 32)
-                                    .background(
-                                        Circle().fill(isSelected ? Color.accentColor.opacity(0.25) : Color.clear)
-                                    )
                                 }
                             }
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .contextMenu {
-                            Button("Delete", role: .destructive) {
-                                viewModel.delete(item)
+                            .buttonStyle(PlainButtonStyle())
+                            .contextMenu {
+                                Button("Delete", role: .destructive) {
+                                    viewModel.delete(item)
+                                }
                             }
+                            .help("\(item.name) — \(item.url.absoluteString)")
                         }
-                        .help("\(item.name) — \(item.url.absoluteString)")
                     }
+                    .padding(.top, 10)
                 }
-                .padding(.top, 10)
-            }
 
-            Spacer(minLength: 8)
+                Spacer(minLength: 8)
 
-            // Pin toggle above the add button
-            Button(action: { viewModel.isPinned.toggle() }) {
-                Image(systemName: viewModel.isPinned ? "pin.fill" : "pin")
-                    .resizable()
-                    .frame(width: 18, height: 18)
-                    .padding(8)
-                    .foregroundColor(viewModel.isPinned ? .accentColor : .primary)
-                    .background(
-                        Circle()
-                            .fill(viewModel.isPinned ? Color.accentColor.opacity(0.18) : Color.clear)
-                    )
-            }
-            .buttonStyle(PlainButtonStyle())
-            .help(viewModel.isPinned ? "Panel is pinned (won't auto-hide)" : "Pin panel to keep it visible")
-
-            Button(action: { viewModel.showAddSheet = true }) {
-                Image(systemName: "plus.circle")
-                    .resizable()
-                    .frame(width: 25, height: 25)
-                    .padding(8)
-            }
-            .help("Add a new bookmark")
-            .sheet(isPresented: $viewModel.showAddSheet) {
-                VStack(spacing: 12) {
-                    TextField("Name", text: $viewModel.addName)
-                    TextField("URL", text: $viewModel.addUrl)
-                    HStack {
-                        Button("Add") { viewModel.addItem() }
-                            .disabled(
-                                viewModel.addName.isEmpty ||
-                                viewModel.addUrl.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            )
-                        Button("Cancel") { viewModel.showAddSheet = false }
+                Button(action: { viewModel.showAddSheet = true }) {
+                    Image(systemName: "plus.circle")
+                        .resizable()
+                        .frame(width: 22, height: 22)
+                        .padding(6)
+                }
+                .help("Add a new bookmark")
+                .sheet(isPresented: $viewModel.showAddSheet) {
+                    VStack(spacing: 12) {
+                        TextField("Name", text: $viewModel.addName)
+                        TextField("URL", text: $viewModel.addUrl)
+                        HStack {
+                            Button("Add") { viewModel.addItem() }
+                                .disabled(
+                                    viewModel.addName.isEmpty ||
+                                    viewModel.addUrl.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                )
+                            Button("Cancel") { viewModel.showAddSheet = false }
+                        }
                     }
+                    .padding()
+                    .frame(width: 300)
                 }
-                .padding()
-                .frame(width: 300)
             }
+            .padding(.vertical, 10)
+            .padding(.horizontal, 4)
+            .frame(width: 64)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color(nsColor: NSColor.windowBackgroundColor).opacity(0.96))
+                    .shadow(color: Color.black.opacity(0.22), radius: 12, x: 0, y: 6)
+            )
+
+            Rectangle()
+                .fill(Color.black.opacity(0.18))
+                .frame(width: 1)
+                .padding(.vertical, 10)
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 6)
-        .frame(width: 72)
-        .background(
-            sidebarBackground
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .shadow(color: Color.black.opacity(0.18), radius: 10, x: 0, y: 4)
-        .padding(.leading, 8)
+        .padding(.leading, 6)
         .padding(.vertical, 8)
     }
 }
